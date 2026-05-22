@@ -1,0 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: 139 115 85;
+  --color-secondary: 245 240 232;
+  --color-accent: 201 169 110;
+  --color-background: 253 251 247;
+  --color-muted: 107 107 107;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  color: rgb(44 44 44);
+  background-color: rgb(var(--color-background));
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+}
