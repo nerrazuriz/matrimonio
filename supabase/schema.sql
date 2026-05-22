@@ -184,3 +184,26 @@ ALTER PUBLICATION supabase_realtime ADD TABLE messages;
 ALTER PUBLICATION supabase_realtime ADD TABLE game_sessions;
 ALTER PUBLICATION supabase_realtime ADD TABLE game_players;
 ALTER PUBLICATION supabase_realtime ADD TABLE game_answers;
+
+-- ═══════════════════════════════════════════════════
+-- ADMIN RLS: operaciones que requieren autenticación
+-- Ejecutar en Supabase SQL Editor después de crear
+-- el usuario admin en Authentication > Users
+-- ═══════════════════════════════════════════════════
+
+-- Guests: admin puede insertar y eliminar
+CREATE POLICY "admin_guests_insert" ON guests
+  FOR INSERT TO authenticated WITH CHECK (true);
+
+CREATE POLICY "admin_guests_delete" ON guests
+  FOR DELETE TO authenticated USING (true);
+
+-- Tables: admin puede gestionar mesas
+CREATE POLICY "admin_tables_insert" ON tables
+  FOR INSERT TO authenticated WITH CHECK (true);
+
+CREATE POLICY "admin_tables_update" ON tables
+  FOR UPDATE TO authenticated USING (true);
+
+CREATE POLICY "admin_tables_delete" ON tables
+  FOR DELETE TO authenticated USING (true);
