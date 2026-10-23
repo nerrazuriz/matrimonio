@@ -1,39 +1,53 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, Heart, ArrowLeft, Check, X, Loader2 } from 'lucide-react'
+import { Heart, ArrowLeft, Check, X, Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { useGuest } from '@/hooks/useGuest'
-import type { Guest } from '@/types/database'
+import type { RsvpSubmission } from '@/types/database'
 
-type Step = 'search' | 'form' | 'confirmed'
+const STORAGE_KEY = 'wedding_rsvp_submission'
+
+type Step = 'name' | 'form' | 'confirmed'
+
+function loadSaved(): RsvpSubmission | null {
+  try {
+    const s = localStorage.getItem(STORAGE_KEY)
+    return s ? JSON.parse(s) : null
+  } catch {
+    return null
+  }
+}
+
+function saveSub(s: RsvpSubmission) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)) } catch { /* noop */ }
+}
 
 export default function RSVP() {
-  const { guest: savedGuest, identify } = useGuest()
-  const [step, setStep] = useState<Step>(
-    savedGuest?.rsvp_status === 'confirmed' || savedGuest?.rsvp_status === 'declined'
-      ? 'confirmed'
-      : savedGuest
-      ? 'form'
-      : 'search'
-  )
-  const [selectedGuest, setSelectedGuest] = useState<Guest | null>(savedGuest)
+  const saved = loadSaved()
+  const [step, setStep] = useState<Step>(saved ? 'confirmed' : 'name')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [submission, setSubmission] = useState<RsvpSubmission | null>(saved)
 
-  const handleSelect = (g: Guest) => {
-    setSelectedGuest(g)
-    identify(g)
+  const handleNameSubmit = () => {
+    if (!firstName.trim() || !lastName.trim()) return
     setStep('form')
   }
 
-  const handleConfirmed = (g: Guest) => {
-    setSelectedGuest(g)
-    identify(g)
+  const handleConfirmed = (s: RsvpSubmission) => {
+    saveSub(s)
+    setSubmission(s)
     setStep('confirmed')
   }
 
   const handleChangeGuest = () => {
-    setSelectedGuest(null)
-    setStep('search')
+    try { localStorage.removeItem(STORAGE_KEY) } catch { /* noop */ }
+    setFirstName('')
+    setLastName('')
+    setSubmission(null)
+    setStep('name')
   }
+
+  const fullName = `${firstName.trim()} ${lastName.trim()}`.trim()
 
   return (
     <main className="min-h-screen bg-background px-4 py-8">
@@ -50,22 +64,30 @@ export default function RSVP() {
           Confirmar Asistencia
         </h1>
         <p className="mt-2 text-sm text-muted">
-          {step === 'search' && 'Busca tu nombre para confirmar.'}
+          {step === 'name' && 'Ingresa tu nombre para continuar.'}
           {step === 'form' && 'Completa tu confirmación.'}
           {step === 'confirmed' && '¡Gracias por confirmar!'}
         </p>
 
         <div className="mt-8">
-          {step === 'search' && <GuestSearch onSelect={handleSelect} />}
-          {step === 'form' && selectedGuest && (
+          {step === 'name' && (
+            <NameForm
+              firstName={firstName}
+              lastName={lastName}
+              onFirstName={setFirstName}
+              onLastName={setLastName}
+              onSubmit={handleNameSubmit}
+            />
+          )}
+          {step === 'form' && (
             <RSVPForm
-              guest={selectedGuest}
+              fullName={fullName}
               onConfirmed={handleConfirmed}
               onChangeGuest={handleChangeGuest}
             />
           )}
-          {step === 'confirmed' && selectedGuest && (
-            <Confirmation guest={selectedGuest} />
+          {step === 'confirmed' && submission && (
+            <Confirmation submission={submission} onChangeGuest={handleChangeGuest} />
           )}
         </div>
       </div>
@@ -73,143 +95,77 @@ export default function RSVP() {
   )
 }
 
-const normalize = (s: string) =>
-  s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().replace(/\s+/g, ' ').trim()
-
-function GuestSearch({ onSelect }: { onSelect: (g: Guest) => void }) {
-  const [query, setQuery] = useState('')
-  const [allGuests, setAllGuests] = useState<Guest[]>([])
-  const [loadingAll, setLoadingAll] = useState(true)
-  const [adding, setAdding] = useState(false)
-  const [addError, setAddError] = useState('')
-
-  useEffect(() => {
-    supabase
-      .from('guests')
-      .select('*')
-      .order('full_name')
-      .limit(500)
-      .then(({ data }) => {
-        setAllGuests((data as Guest[]) ?? [])
-        setLoadingAll(false)
-      })
-  }, [])
-
-  const nq = normalize(query)
-  const results = nq.length >= 2
-    ? allGuests.filter(g => normalize(g.full_name).includes(nq))
-    : []
-  const searched = nq.length >= 2
-
-  const handleAdd = async () => {
-    const name = query.trim()
-    if (!name) return
-    setAdding(true)
-    setAddError('')
-    const { data, error } = await supabase
-      .from('guests')
-      .insert({ full_name: name })
-      .select()
-      .single()
-    if (error || !data) {
-      setAddError('No se pudo agregar el nombre. Contacta a los novios.')
-      setAdding(false)
-      return
-    }
-    onSelect(data as Guest)
-  }
+function NameForm({
+  firstName,
+  lastName,
+  onFirstName,
+  onLastName,
+  onSubmit,
+}: {
+  firstName: string
+  lastName: string
+  onFirstName: (v: string) => void
+  onLastName: (v: string) => void
+  onSubmit: () => void
+}) {
+  const valid = firstName.trim().length > 0 && lastName.trim().length > 0
 
   return (
-    <div>
-      <div className="relative">
-        <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+    <div className="space-y-4">
+      <div>
+        <label htmlFor="firstName" className="mb-1 block text-sm font-medium text-primary">
+          Nombre
+        </label>
         <input
+          id="firstName"
           type="text"
-          placeholder="Escribe tu nombre..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Ej: Nicolás"
+          value={firstName}
+          onChange={e => onFirstName(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && valid && onSubmit()}
           autoFocus
-          className="w-full rounded-xl border border-secondary bg-white py-3 pl-11 pr-4 text-sm outline-none transition-colors focus:border-primary"
+          className="w-full rounded-xl border border-secondary bg-white px-4 py-3 text-sm outline-none transition-colors focus:border-primary"
         />
-        {loadingAll && (
-          <Loader2 className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted" />
-        )}
       </div>
-
-      {results.length > 0 && (
-        <ul className="mt-3 space-y-2">
-          {results.map((g) => (
-            <li key={g.id}>
-              <button
-                onClick={() => onSelect(g)}
-                className="flex w-full items-center justify-between rounded-xl border border-secondary bg-white px-4 py-3 text-left transition-colors hover:border-primary"
-              >
-                <div>
-                  <p className="font-medium text-primary">{g.full_name}</p>
-                  {g.group_label && (
-                    <p className="text-xs text-muted">{g.group_label}</p>
-                  )}
-                </div>
-                {g.rsvp_status === 'confirmed' && (
-                  <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-700">
-                    Confirmado
-                  </span>
-                )}
-                {g.rsvp_status === 'declined' && (
-                  <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-700">
-                    Declinado
-                  </span>
-                )}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {searched && !loadingAll && results.length === 0 && (
-        <div className="mt-6 rounded-xl border border-secondary bg-white px-5 py-5 text-center">
-          <p className="text-sm text-muted">
-            No encontramos <span className="font-medium text-primary">"{query}"</span> en la lista.
-          </p>
-          <p className="mt-1 text-xs text-muted">
-            ¿Puede ser que tu nombre esté escrito diferente? Si no, agrégalo aquí.
-          </p>
-          <button
-            onClick={handleAdd}
-            disabled={adding}
-            className="mt-4 inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary/90 disabled:opacity-60"
-          >
-            {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            {adding ? 'Agregando...' : `Agregar "${query.trim()}" a la lista`}
-          </button>
-          {addError && (
-            <p className="mt-3 text-xs text-red-500">{addError}</p>
-          )}
-        </div>
-      )}
+      <div>
+        <label htmlFor="lastName" className="mb-1 block text-sm font-medium text-primary">
+          Apellido
+        </label>
+        <input
+          id="lastName"
+          type="text"
+          placeholder="Ej: Errazuriz"
+          value={lastName}
+          onChange={e => onLastName(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && valid && onSubmit()}
+          className="w-full rounded-xl border border-secondary bg-white px-4 py-3 text-sm outline-none transition-colors focus:border-primary"
+        />
+      </div>
+      <button
+        onClick={onSubmit}
+        disabled={!valid}
+        className="flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3 text-sm font-medium text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
+      >
+        Continuar
+      </button>
     </div>
   )
 }
 
 function RSVPForm({
-  guest,
+  fullName,
   onConfirmed,
   onChangeGuest,
 }: {
-  guest: Guest
-  onConfirmed: (g: Guest) => void
+  fullName: string
+  onConfirmed: (s: RsvpSubmission) => void
   onChangeGuest: () => void
 }) {
-  const [attending, setAttending] = useState<boolean | null>(
-    guest.rsvp_status === 'confirmed'
-      ? true
-      : guest.rsvp_status === 'declined'
-        ? false
-        : null
-  )
-  const [dietary, setDietary] = useState(guest.dietary_restrictions ?? '')
-  const [plusOneName, setPlusOneName] = useState(guest.plus_one_name ?? '')
-  const [plusOneDietary, setPlusOneDietary] = useState(guest.plus_one_dietary ?? '')
+  const [attending, setAttending] = useState<boolean | null>(null)
+  const [dietary, setDietary] = useState('')
+  const [hasPlusOne, setHasPlusOne] = useState(false)
+  const [plusOneName, setPlusOneName] = useState('')
+  const [plusOneDietary, setPlusOneDietary] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
@@ -220,37 +176,33 @@ function RSVPForm({
     setSubmitting(true)
     setError('')
 
-    const updates: Partial<Guest> = {
+    const payload = {
+      entered_name: fullName,
       rsvp_status: attending ? 'confirmed' : 'declined',
       dietary_restrictions: attending ? dietary || null : null,
-      plus_one_name: attending && guest.plus_one ? plusOneName || null : null,
-      plus_one_dietary: attending && guest.plus_one ? plusOneDietary || null : null,
-      updated_at: new Date().toISOString(),
+      plus_one_name: attending && hasPlusOne ? plusOneName || null : null,
+      plus_one_dietary: attending && hasPlusOne ? plusOneDietary || null : null,
     }
 
-    const { error: err } = await supabase
-      .from('guests')
-      .update(updates)
-      .eq('id', guest.id)
+    const { data, error: err } = await supabase
+      .from('rsvp_submissions')
+      .insert(payload)
+      .select()
+      .single()
 
-    if (err) {
-      setError('Hubo un error. Intenta de nuevo.')
+    if (err || !data) {
+      setError('Hubo un error al enviar. Intenta de nuevo.')
       setSubmitting(false)
       return
     }
 
-    onConfirmed({ ...guest, ...updates } as Guest)
+    onConfirmed(data as RsvpSubmission)
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="flex items-center justify-between rounded-xl border border-secondary bg-white px-4 py-3">
-        <div>
-          <p className="font-medium text-primary">{guest.full_name}</p>
-          {guest.group_label && (
-            <p className="text-xs text-muted">{guest.group_label}</p>
-          )}
-        </div>
+        <p className="font-medium text-primary">{fullName}</p>
         <button
           type="button"
           onClick={onChangeGuest}
@@ -260,7 +212,6 @@ function RSVPForm({
         </button>
       </div>
 
-      {/* Attending */}
       <fieldset>
         <legend className="mb-3 text-sm font-medium">
           ¿Confirmas tu asistencia?
@@ -295,7 +246,6 @@ function RSVPForm({
 
       {attending && (
         <>
-          {/* Dietary */}
           <div>
             <label htmlFor="dietary" className="mb-1 block text-sm font-medium">
               Restricciones alimentarias
@@ -305,27 +255,36 @@ function RSVPForm({
               type="text"
               placeholder="Vegetariano, alergia a mariscos, etc."
               value={dietary}
-              onChange={(e) => setDietary(e.target.value)}
+              onChange={e => setDietary(e.target.value)}
               className="w-full rounded-xl border border-secondary bg-white px-4 py-3 text-sm outline-none transition-colors focus:border-primary"
             />
           </div>
 
-          {/* Plus one */}
-          {guest.plus_one && (
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={hasPlusOne}
+              onChange={e => setHasPlusOne(e.target.checked)}
+              className="h-4 w-4 rounded border-secondary text-primary focus:ring-primary"
+            />
+            <span className="text-sm font-medium">Vengo con acompañante</span>
+          </label>
+
+          {hasPlusOne && (
             <div className="space-y-3 rounded-xl border border-secondary bg-white p-4">
               <p className="text-sm font-medium">Acompañante</p>
               <input
                 type="text"
                 placeholder="Nombre del acompañante"
                 value={plusOneName}
-                onChange={(e) => setPlusOneName(e.target.value)}
+                onChange={e => setPlusOneName(e.target.value)}
                 className="w-full rounded-lg border border-secondary px-3 py-2 text-sm outline-none transition-colors focus:border-primary"
               />
               <input
                 type="text"
                 placeholder="Restricciones alimentarias (opcional)"
                 value={plusOneDietary}
-                onChange={(e) => setPlusOneDietary(e.target.value)}
+                onChange={e => setPlusOneDietary(e.target.value)}
                 className="w-full rounded-lg border border-secondary px-3 py-2 text-sm outline-none transition-colors focus:border-primary"
               />
             </div>
@@ -353,9 +312,15 @@ function RSVPForm({
   )
 }
 
-function Confirmation({ guest }: { guest: Guest }) {
-  const confirmed = guest.rsvp_status === 'confirmed'
-  const firstName = guest.full_name.split(' ')[0]
+function Confirmation({
+  submission,
+  onChangeGuest,
+}: {
+  submission: RsvpSubmission
+  onChangeGuest: () => void
+}) {
+  const confirmed = submission.rsvp_status === 'confirmed'
+  const firstName = submission.entered_name.split(' ')[0]
 
   return (
     <div className="flex flex-col items-center text-center">
@@ -378,18 +343,18 @@ function Confirmation({ guest }: { guest: Guest }) {
       <p className="mt-2 text-sm text-muted">
         {confirmed
           ? `Muchas gracias por confirmar ${firstName}, estamos felices de contar contigo, ¡nos vemos en el matrimonio!`
-          : `Lamentamos que no puedas asistir, ${guest.full_name}. ¡Te tendremos presente!`}
+          : `Lamentamos que no puedas asistir, ${firstName}. ¡Te tendremos presente!`}
       </p>
 
-      {confirmed && guest.dietary_restrictions && (
+      {confirmed && submission.dietary_restrictions && (
         <p className="mt-3 text-xs text-muted">
-          Restricciones: {guest.dietary_restrictions}
+          Restricciones: {submission.dietary_restrictions}
         </p>
       )}
 
-      {confirmed && guest.plus_one_name && (
+      {confirmed && submission.plus_one_name && (
         <p className="mt-1 text-xs text-muted">
-          Acompañante: {guest.plus_one_name}
+          Acompañante: {submission.plus_one_name}
         </p>
       )}
 
@@ -410,9 +375,16 @@ function Confirmation({ guest }: { guest: Guest }) {
         </a>
       )}
 
+      <button
+        onClick={onChangeGuest}
+        className="mt-4 text-xs text-muted underline hover:text-primary"
+      >
+        No soy yo
+      </button>
+
       <Link
         to="/"
-        className="mt-8 inline-flex items-center gap-2 rounded-full bg-primary px-8 py-3 text-sm font-medium text-white transition-colors hover:bg-primary/90"
+        className="mt-6 inline-flex items-center gap-2 rounded-full bg-primary px-8 py-3 text-sm font-medium text-white transition-colors hover:bg-primary/90"
       >
         <Heart className="h-4 w-4" />
         Volver al inicio

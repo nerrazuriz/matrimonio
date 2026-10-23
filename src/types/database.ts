@@ -70,6 +70,18 @@ export interface GamePlayer {
   created_at: string
 }
 
+export interface RsvpSubmission {
+  id: string
+  entered_name: string
+  rsvp_status: 'confirmed' | 'declined'
+  dietary_restrictions: string | null
+  plus_one_name: string | null
+  plus_one_dietary: string | null
+  linked_guest_id: string | null
+  created_at: string
+  updated_at: string
+}
+
 export interface GameAnswer {
   id: string
   session_id: string
