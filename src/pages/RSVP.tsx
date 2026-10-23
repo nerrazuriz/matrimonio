@@ -176,27 +176,32 @@ function RSVPForm({
     setSubmitting(true)
     setError('')
 
+    const now = new Date().toISOString()
     const payload = {
+      id: crypto.randomUUID(),
       entered_name: fullName,
-      rsvp_status: attending ? 'confirmed' : 'declined',
+      rsvp_status: (attending ? 'confirmed' : 'declined') as 'confirmed' | 'declined',
       dietary_restrictions: attending ? dietary || null : null,
       plus_one_name: attending && hasPlusOne ? plusOneName || null : null,
       plus_one_dietary: attending && hasPlusOne ? plusOneDietary || null : null,
     }
 
-    const { data, error: err } = await supabase
+    const { error: err } = await supabase
       .from('rsvp_submissions')
       .insert(payload)
-      .select()
-      .single()
 
-    if (err || !data) {
+    if (err) {
       setError('Hubo un error al enviar. Intenta de nuevo.')
       setSubmitting(false)
       return
     }
 
-    onConfirmed(data as RsvpSubmission)
+    onConfirmed({
+      ...payload,
+      linked_guest_id: null,
+      created_at: now,
+      updated_at: now,
+    })
   }
 
   return (
