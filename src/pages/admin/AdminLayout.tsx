@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Users, ClipboardList, LayoutGrid, LogOut } from 'lucide-react'
+import { LayoutDashboard, Users, ClipboardList, LayoutGrid, LogOut, Link2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/cn'
 
@@ -7,6 +7,7 @@ const nav = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/admin/guests', label: 'Invitados', icon: Users, end: false },
   { to: '/admin/rsvp', label: 'Confirmaciones', icon: ClipboardList, end: false },
+  { to: '/admin/submissions', label: 'Vinculaciones', icon: Link2, end: false },
   { to: '/admin/tables', label: 'Mesas', icon: LayoutGrid, end: false },
 ]
 
