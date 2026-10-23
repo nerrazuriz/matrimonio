@@ -1,16 +1,21 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Search, Heart, ArrowLeft, Check, X, Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useGuest } from '@/hooks/useGuest'
 import type { Guest } from '@/types/database'
-import MedievalMap from '@/components/map/MedievalMap'
 
 type Step = 'search' | 'form' | 'confirmed'
 
 export default function RSVP() {
   const { guest: savedGuest, identify } = useGuest()
-  const [step, setStep] = useState<Step>(savedGuest ? 'form' : 'search')
+  const [step, setStep] = useState<Step>(
+    savedGuest?.rsvp_status === 'confirmed' || savedGuest?.rsvp_status === 'declined'
+      ? 'confirmed'
+      : savedGuest
+      ? 'form'
+      : 'search'
+  )
   const [selectedGuest, setSelectedGuest] = useState<Guest | null>(savedGuest)
 
   const handleSelect = (g: Guest) => {
@@ -32,7 +37,7 @@ export default function RSVP() {
 
   return (
     <main className="min-h-screen bg-background px-4 py-8">
-      <div className={`mx-auto ${step === 'confirmed' ? 'max-w-3xl' : 'max-w-lg'}`}>
+      <div className="mx-auto max-w-lg">
         <Link
           to="/"
           className="mb-8 inline-flex items-center gap-1 text-sm text-muted transition-colors hover:text-primary"
@@ -68,36 +73,51 @@ export default function RSVP() {
   )
 }
 
+const normalize = (s: string) =>
+  s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().replace(/\s+/g, ' ').trim()
+
 function GuestSearch({ onSelect }: { onSelect: (g: Guest) => void }) {
   const [query, setQuery] = useState('')
-  const [results, setResults] = useState<Guest[]>([])
-  const [loading, setLoading] = useState(false)
-  const [searched, setSearched] = useState(false)
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>()
+  const [allGuests, setAllGuests] = useState<Guest[]>([])
+  const [loadingAll, setLoadingAll] = useState(true)
+  const [adding, setAdding] = useState(false)
+  const [addError, setAddError] = useState('')
 
   useEffect(() => {
-    if (query.length < 2) {
-      setResults([])
-      setSearched(false)
+    supabase
+      .from('guests')
+      .select('*')
+      .order('full_name')
+      .limit(500)
+      .then(({ data }) => {
+        setAllGuests((data as Guest[]) ?? [])
+        setLoadingAll(false)
+      })
+  }, [])
+
+  const nq = normalize(query)
+  const results = nq.length >= 2
+    ? allGuests.filter(g => normalize(g.full_name).includes(nq))
+    : []
+  const searched = nq.length >= 2
+
+  const handleAdd = async () => {
+    const name = query.trim()
+    if (!name) return
+    setAdding(true)
+    setAddError('')
+    const { data, error } = await supabase
+      .from('guests')
+      .insert({ full_name: name })
+      .select()
+      .single()
+    if (error || !data) {
+      setAddError('No se pudo agregar el nombre. Contacta a los novios.')
+      setAdding(false)
       return
     }
-
-    clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(async () => {
-      setLoading(true)
-      const { data } = await supabase
-        .from('guests')
-        .select('*')
-        .ilike('full_name', `%${query}%`)
-        .limit(10)
-
-      setResults((data as Guest[]) ?? [])
-      setSearched(true)
-      setLoading(false)
-    }, 300)
-
-    return () => clearTimeout(debounceRef.current)
-  }, [query])
+    onSelect(data as Guest)
+  }
 
   return (
     <div>
@@ -111,7 +131,7 @@ function GuestSearch({ onSelect }: { onSelect: (g: Guest) => void }) {
           autoFocus
           className="w-full rounded-xl border border-secondary bg-white py-3 pl-11 pr-4 text-sm outline-none transition-colors focus:border-primary"
         />
-        {loading && (
+        {loadingAll && (
           <Loader2 className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted" />
         )}
       </div>
@@ -146,10 +166,26 @@ function GuestSearch({ onSelect }: { onSelect: (g: Guest) => void }) {
         </ul>
       )}
 
-      {searched && results.length === 0 && !loading && (
-        <p className="mt-4 text-center text-sm text-muted">
-          No encontramos tu nombre. Verifica la ortografía o contacta a los novios.
-        </p>
+      {searched && !loadingAll && results.length === 0 && (
+        <div className="mt-6 rounded-xl border border-secondary bg-white px-5 py-5 text-center">
+          <p className="text-sm text-muted">
+            No encontramos <span className="font-medium text-primary">"{query}"</span> en la lista.
+          </p>
+          <p className="mt-1 text-xs text-muted">
+            ¿Puede ser que tu nombre esté escrito diferente? Si no, agrégalo aquí.
+          </p>
+          <button
+            onClick={handleAdd}
+            disabled={adding}
+            className="mt-4 inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary/90 disabled:opacity-60"
+          >
+            {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            {adding ? 'Agregando...' : `Agregar "${query.trim()}" a la lista`}
+          </button>
+          {addError && (
+            <p className="mt-3 text-xs text-red-500">{addError}</p>
+          )}
+        </div>
       )}
     </div>
   )
@@ -319,6 +355,7 @@ function RSVPForm({
 
 function Confirmation({ guest }: { guest: Guest }) {
   const confirmed = guest.rsvp_status === 'confirmed'
+  const firstName = guest.full_name.split(' ')[0]
 
   return (
     <div className="flex flex-col items-center text-center">
@@ -340,7 +377,7 @@ function Confirmation({ guest }: { guest: Guest }) {
 
       <p className="mt-2 text-sm text-muted">
         {confirmed
-          ? `Gracias por confirmar, ${guest.full_name}. ¡Estamos felices de contar contigo!`
+          ? `Muchas gracias por confirmar ${firstName}, estamos felices de contar contigo, ¡nos vemos en el matrimonio!`
           : `Lamentamos que no puedas asistir, ${guest.full_name}. ¡Te tendremos presente!`}
       </p>
 
@@ -357,17 +394,20 @@ function Confirmation({ guest }: { guest: Guest }) {
       )}
 
       {confirmed && (
-        <div className="mt-10 w-full">
-          <div className="mb-4 text-center">
-            <h3 className="font-heading text-xl font-bold text-primary">
-              El Mapa del Reino
-            </h3>
-            <p className="mt-1 text-xs text-muted">
-              Los lugares donde celebraremos juntos. Toca un ícono para conocer cada lugar.
-            </p>
-          </div>
-          <MedievalMap />
-        </div>
+        <a
+          href="https://calendar.google.com/calendar/event?action=TEMPLATE&tmeid=NTNucmQ1dDJqN3NtNXA4YXJzZHVhazdtdXQgbmljb2xhcy5lcnJhenVyaXouYkBt&tmsrc=nicolas.errazuriz.b%40gmail.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-6 inline-flex items-center gap-2.5 rounded-full border border-primary/20 bg-white px-6 py-3 text-sm font-medium text-primary shadow-sm transition-all hover:bg-primary/5 hover:shadow-md"
+        >
+          <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0" aria-hidden="true">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+          </svg>
+          Guardar en Google Calendar
+        </a>
       )}
 
       <Link
