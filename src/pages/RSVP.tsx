@@ -4,6 +4,7 @@ import { Search, Heart, ArrowLeft, Check, X, Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useGuest } from '@/hooks/useGuest'
 import type { Guest } from '@/types/database'
+import MedievalMap from '@/components/map/MedievalMap'
 
 type Step = 'search' | 'form' | 'confirmed'
 
@@ -31,7 +32,7 @@ export default function RSVP() {
 
   return (
     <main className="min-h-screen bg-background px-4 py-8">
-      <div className="mx-auto max-w-lg">
+      <div className={`mx-auto ${step === 'confirmed' ? 'max-w-3xl' : 'max-w-lg'}`}>
         <Link
           to="/"
           className="mb-8 inline-flex items-center gap-1 text-sm text-muted transition-colors hover:text-primary"
@@ -353,6 +354,20 @@ function Confirmation({ guest }: { guest: Guest }) {
         <p className="mt-1 text-xs text-muted">
           Acompañante: {guest.plus_one_name}
         </p>
+      )}
+
+      {confirmed && (
+        <div className="mt-10 w-full">
+          <div className="mb-4 text-center">
+            <h3 className="font-heading text-xl font-bold text-primary">
+              El Mapa del Reino
+            </h3>
+            <p className="mt-1 text-xs text-muted">
+              Los lugares donde celebraremos juntos. Toca un ícono para conocer cada lugar.
+            </p>
+          </div>
+          <MedievalMap />
+        </div>
       )}
 
       <Link

@@ -14,6 +14,8 @@ export default {
       fontFamily: {
         heading: ['Playfair Display', 'serif'],
         body: ['Inter', 'sans-serif'],
+        medieval: ['Cinzel', 'serif'],
+        scroll: ['"IM Fell English"', 'serif'],
       },
     },
   },

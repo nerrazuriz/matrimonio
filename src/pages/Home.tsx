@@ -19,7 +19,7 @@ export default function Home() {
     <main className="min-h-screen bg-background">
       {/* Hero */}
       <section className="relative flex min-h-screen flex-col items-center justify-center px-4 text-center">
-        <div className="absolute inset-0 bg-gradient-to-b from-secondary/50 to-background" />
+        <div className="absolute inset-0 bg-gradient-to-b from-background to-background" />
 
         <div className="relative z-10 max-w-2xl">
           <p className="mb-4 text-sm uppercase tracking-[0.3em] text-muted">

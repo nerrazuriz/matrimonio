@@ -9,12 +9,15 @@ import GuestsPage from '@/pages/admin/GuestsPage'
 import RSVPPage from '@/pages/admin/RSVPPage'
 import TablesPage from '@/pages/admin/TablesPage'
 import AdminRoute from '@/components/admin/AdminRoute'
+import GuestLayout from '@/components/GuestLayout'
 
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<Home />} />
-      <Route path="/rsvp" element={<RSVP />} />
+      <Route element={<GuestLayout />}>
+        <Route path="/" element={<Home />} />
+        <Route path="/rsvp" element={<RSVP />} />
+      </Route>
 
       <Route path="/admin/login" element={<AdminLogin />} />
       <Route element={<AdminRoute />}>
