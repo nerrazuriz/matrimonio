@@ -386,7 +386,7 @@ function Confirmation({
 const GOOGLE_CAL_URL =
   'https://calendar.google.com/calendar/render?action=TEMPLATE' +
   '&text=Matrimonio+Nico+%26+Cote' +
-  '&dates=20261211T180000%2F20261211T230000' +
+  '&dates=20261211T180000%2F20261212T033000' +
   '&details=Ceremonia+a+las+18%3A00+hrs+en+la+Iglesia+del+Colegio+Santa+%C3%9Arsula.+Recepci%C3%B3n+en+Hacienda+Porvenir.' +
   '&location=Iglesia+del+Colegio+Santa+%C3%9Arsula'
 
@@ -397,7 +397,7 @@ function downloadIcs() {
     'PRODID:-//Matrimonio Nico & Cote//ES',
     'BEGIN:VEVENT',
     'DTSTART:20261211T180000',
-    'DTEND:20261211T230000',
+    'DTEND:20261212T033000',
     'SUMMARY:Matrimonio Nico & Cote',
     'LOCATION:Iglesia del Colegio Santa Úrsula',
     'DESCRIPTION:Ceremonia 18:00 hrs. Recepción en Hacienda Porvenir.',
