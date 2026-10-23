@@ -115,7 +115,7 @@ export default function TablesPage() {
 
   function patchLayout(id: string, patch: Partial<TableLayout>) {
     setLayout(prev => {
-      const next = { ...prev, [id]: { ...prev[id], ...patch } }
+      const next: LayoutMap = { ...prev, [id]: { ...prev[id], ...patch } as TableLayout }
       saveLayout(next)
       return next
     })
@@ -126,7 +126,7 @@ export default function TablesPage() {
     e.preventDefault()
     e.stopPropagation()
     const x0 = e.clientX, y0 = e.clientY
-    const ox = layout[id].x, oy = layout[id].y
+    const ox = layout[id]!.x, oy = layout[id]!.y
 
     const move = (ev: MouseEvent) =>
       patchLayout(id, { x: Math.max(60, ox + ev.clientX - x0), y: Math.max(60, oy + ev.clientY - y0) })
@@ -140,7 +140,7 @@ export default function TablesPage() {
     e.preventDefault()
     e.stopPropagation()
     const x0 = e.clientX, y0 = e.clientY
-    const orig = { ...layout[id] }
+    const orig = { ...layout[id]! }
 
     const move = (ev: MouseEvent) => {
       const dx = ev.clientX - x0, dy = ev.clientY - y0

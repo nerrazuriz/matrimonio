@@ -46,7 +46,6 @@ export default function GuestsPage() {
   const [selected, setSelected] = useState<Guest | null>(null)
   const [form, setForm] = useState<GuestForm>(emptyForm)
   const [saving, setSaving] = useState(false)
-  const [saveError, setSaveError] = useState('')
 
   async function load() {
     const [{ data: g }, { data: t }] = await Promise.all([

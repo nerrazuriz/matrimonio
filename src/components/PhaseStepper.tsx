@@ -26,9 +26,8 @@ export default function PhaseStepper({ phase }: { phase?: Phase }) {
     <nav className="w-full bg-background px-4 py-3">
       <ol className="mx-auto flex max-w-lg items-center justify-between">
         {PHASES.map((step, i) => {
-          const done    = i < currentIndex
-          const active  = i === currentIndex
-          const pending = i > currentIndex
+          const done   = i < currentIndex
+          const active = i === currentIndex
 
           return (
             <li key={step.id} className="flex flex-1 items-center">
