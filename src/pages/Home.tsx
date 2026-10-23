@@ -8,8 +8,10 @@ const COUPLE = {
   name1: 'Nico',
   name2: 'Cote',
   date: '11 de Diciembre, 2026',
-  ceremony: 'Capilla Nuestra Señora de la Esperanza',
+  ceremony: 'Iglesia del Colegio Santa Úrsula',
   reception: 'Hacienda Porvenir',
+  ceremonyMaps: 'https://maps.app.goo.gl/zQ6oEsjDyaUKuxKj9',
+  receptionMaps: 'https://maps.app.goo.gl/CEba1wx8ZH63tkjS6',
 }
 
 export default function Home() {
@@ -22,10 +24,6 @@ export default function Home() {
         <div className="absolute inset-0 bg-gradient-to-b from-background to-background" />
 
         <div className="relative z-10 max-w-2xl">
-          <p className="mb-4 text-sm uppercase tracking-[0.3em] text-muted">
-            Nos casamos
-          </p>
-
           <h1 className="font-heading text-5xl font-bold text-primary sm:text-7xl">
             {COUPLE.name1}
             <span className="mx-3 text-accent">&</span>
@@ -69,7 +67,6 @@ export default function Home() {
               to="/rsvp"
               className="inline-flex items-center gap-2 rounded-full bg-primary px-8 py-3 text-sm font-medium text-white transition-colors hover:bg-primary/90"
             >
-              <Heart className="h-4 w-4" />
               Confirmar Asistencia
             </Link>
           </div>
@@ -88,12 +85,14 @@ export default function Home() {
             title="Ceremonia"
             detail="18:00 hrs"
             subtitle={COUPLE.ceremony}
+            mapsUrl={COUPLE.ceremonyMaps}
           />
           <InfoCard
             icon={<MapPin className="h-6 w-6" />}
             title="Recepción"
             detail={COUPLE.reception}
-            subtitle="Cena & Fiesta"
+            subtitle="Comida & Fiesta"
+            mapsUrl={COUPLE.receptionMaps}
           />
           <InfoCard
             icon={<Heart className="h-6 w-6" />}
@@ -107,11 +106,12 @@ export default function Home() {
   )
 }
 
-function InfoCard({ icon, title, detail, subtitle }: {
+function InfoCard({ icon, title, detail, subtitle, mapsUrl }: {
   icon: React.ReactNode
   title: string
   detail: string
   subtitle: string
+  mapsUrl?: string
 }) {
   return (
     <div className="flex flex-col items-center rounded-2xl border border-secondary bg-white p-8 text-center shadow-sm">
@@ -123,6 +123,17 @@ function InfoCard({ icon, title, detail, subtitle }: {
         {detail}
       </p>
       <p className="mt-1 text-sm text-muted">{subtitle}</p>
+      {mapsUrl && (
+        <a
+          href={mapsUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-accent px-4 py-1.5 text-xs font-medium text-accent transition-colors hover:bg-accent hover:text-white"
+        >
+          <MapPin className="h-3.5 w-3.5" />
+          Ver en Maps
+        </a>
+      )}
     </div>
   )
 }
