@@ -119,7 +119,7 @@ function NameForm({
         <input
           id="firstName"
           type="text"
-          placeholder="Ej: Nicolás"
+          placeholder="Tu nombre"
           value={firstName}
           onChange={e => onFirstName(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && valid && onSubmit()}
@@ -134,7 +134,7 @@ function NameForm({
         <input
           id="lastName"
           type="text"
-          placeholder="Ej: Errazuriz"
+          placeholder="Tu apellido"
           value={lastName}
           onChange={e => onLastName(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && valid && onSubmit()}
@@ -163,9 +163,6 @@ function RSVPForm({
 }) {
   const [attending, setAttending] = useState<boolean | null>(null)
   const [dietary, setDietary] = useState('')
-  const [hasPlusOne, setHasPlusOne] = useState(false)
-  const [plusOneName, setPlusOneName] = useState('')
-  const [plusOneDietary, setPlusOneDietary] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
@@ -182,8 +179,8 @@ function RSVPForm({
       entered_name: fullName,
       rsvp_status: (attending ? 'confirmed' : 'declined') as 'confirmed' | 'declined',
       dietary_restrictions: attending ? dietary || null : null,
-      plus_one_name: attending && hasPlusOne ? plusOneName || null : null,
-      plus_one_dietary: attending && hasPlusOne ? plusOneDietary || null : null,
+      plus_one_name: null,
+      plus_one_dietary: null,
     }
 
     const { error: err } = await supabase
@@ -258,42 +255,13 @@ function RSVPForm({
             <input
               id="dietary"
               type="text"
-              placeholder="Vegetariano, alergia a mariscos, etc."
+              placeholder="Ninguna, vegetariano, sin gluten, etc."
               value={dietary}
               onChange={e => setDietary(e.target.value)}
               className="w-full rounded-xl border border-secondary bg-white px-4 py-3 text-sm outline-none transition-colors focus:border-primary"
             />
           </div>
 
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={hasPlusOne}
-              onChange={e => setHasPlusOne(e.target.checked)}
-              className="h-4 w-4 rounded border-secondary text-primary focus:ring-primary"
-            />
-            <span className="text-sm font-medium">Vengo con acompañante</span>
-          </label>
-
-          {hasPlusOne && (
-            <div className="space-y-3 rounded-xl border border-secondary bg-white p-4">
-              <p className="text-sm font-medium">Acompañante</p>
-              <input
-                type="text"
-                placeholder="Nombre del acompañante"
-                value={plusOneName}
-                onChange={e => setPlusOneName(e.target.value)}
-                className="w-full rounded-lg border border-secondary px-3 py-2 text-sm outline-none transition-colors focus:border-primary"
-              />
-              <input
-                type="text"
-                placeholder="Restricciones alimentarias (opcional)"
-                value={plusOneDietary}
-                onChange={e => setPlusOneDietary(e.target.value)}
-                className="w-full rounded-lg border border-secondary px-3 py-2 text-sm outline-none transition-colors focus:border-primary"
-              />
-            </div>
-          )}
         </>
       )}
 
