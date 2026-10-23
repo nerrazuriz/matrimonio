@@ -3,18 +3,36 @@
 @tailwind utilities;
 
 :root {
-  --color-primary: 139 115 85;
-  --color-secondary: 245 240 232;
-  --color-accent: 201 169 110;
-  --color-background: 253 251 247;
-  --color-muted: 107 107 107;
+  --color-primary: 30 54 87;
+  --color-secondary: 222 230 238;
+  --color-accent: 108 141 176;
+  --color-background: 247 248 246;
+  --color-muted: 99 112 128;
+  --color-ink: 28 38 52;
+  --color-wave-line: 36 61 95;
 }
 
 body {
   font-family: 'Inter', sans-serif;
-  color: rgb(44 44 44);
+  color: rgb(var(--color-ink));
   background-color: rgb(var(--color-background));
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   margin: 0;
+}
+
+@layer components {
+  /* Seigaiha wave pattern; line color sits just above the indigo base so it reads as texture */
+  .seigaiha {
+    --wave-bg: rgb(var(--color-primary));
+    --wave-line: rgb(var(--color-wave-line));
+    background-color: var(--wave-bg);
+    background-image:
+      radial-gradient(circle at 100% 150%, var(--wave-bg) 24%, var(--wave-line) 24%, var(--wave-line) 28%, var(--wave-bg) 28%, var(--wave-bg) 36%, var(--wave-line) 36%, var(--wave-line) 40%, transparent 40%, transparent),
+      radial-gradient(circle at 0 150%, var(--wave-bg) 24%, var(--wave-line) 24%, var(--wave-line) 28%, var(--wave-bg) 28%, var(--wave-bg) 36%, var(--wave-line) 36%, var(--wave-line) 40%, transparent 40%, transparent),
+      radial-gradient(circle at 50% 100%, var(--wave-line) 10%, var(--wave-bg) 10%, var(--wave-bg) 23%, var(--wave-line) 23%, var(--wave-line) 30%, var(--wave-bg) 30%, var(--wave-bg) 43%, var(--wave-line) 43%, var(--wave-line) 50%, var(--wave-bg) 50%, var(--wave-bg) 63%, var(--wave-line) 63%, var(--wave-line) 71%, transparent 71%, transparent),
+      radial-gradient(circle at 100% 50%, var(--wave-line) 5%, var(--wave-bg) 5%, var(--wave-bg) 15%, var(--wave-line) 15%, var(--wave-line) 20%, var(--wave-bg) 20%, var(--wave-bg) 29%, var(--wave-line) 29%, var(--wave-line) 34%, var(--wave-bg) 34%, var(--wave-bg) 44%, var(--wave-line) 44%, var(--wave-line) 49%, transparent 49%, transparent),
+      radial-gradient(circle at 0 50%, var(--wave-line) 5%, var(--wave-bg) 5%, var(--wave-bg) 15%, var(--wave-line) 15%, var(--wave-line) 20%, var(--wave-bg) 20%, var(--wave-bg) 29%, var(--wave-line) 29%, var(--wave-line) 34%, var(--wave-bg) 34%, var(--wave-bg) 44%, var(--wave-line) 44%, var(--wave-line) 49%, transparent 49%, transparent);
+    background-size: 80px 40px;
+  }
 }

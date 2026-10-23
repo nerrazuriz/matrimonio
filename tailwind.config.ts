@@ -10,9 +10,10 @@ export default {
         accent: 'rgb(var(--color-accent) / <alpha-value>)',
         background: 'rgb(var(--color-background) / <alpha-value>)',
         muted: 'rgb(var(--color-muted) / <alpha-value>)',
+        ink: 'rgb(var(--color-ink) / <alpha-value>)',
       },
       fontFamily: {
-        heading: ['Playfair Display', 'serif'],
+        heading: ['"Cormorant Garamond"', 'serif'],
         body: ['Inter', 'sans-serif'],
         medieval: ['Cinzel', 'serif'],
         scroll: ['"IM Fell English"', 'serif'],

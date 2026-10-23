@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Heart, ArrowLeft, Check, X, Loader2, Calendar, ChevronDown } from 'lucide-react'
+import { ArrowLeft, Check, X, Loader2, Calendar, ChevronDown } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import Mountains from '@/components/decor/Mountains'
+import { Divider } from '@/components/decor/Ornaments'
 import type { RsvpSubmission } from '@/types/database'
 
 const STORAGE_KEY = 'wedding_rsvp_submission'
@@ -50,20 +52,23 @@ export default function RSVP() {
   const fullName = `${firstName.trim()} ${lastName.trim()}`.trim()
 
   return (
-    <main className="min-h-screen bg-background px-4 py-8">
-      <div className="mx-auto max-w-lg">
+    <main className="flex min-h-svh flex-col bg-gradient-to-b from-secondary/60 via-background to-background">
+      <div className="mx-auto w-full max-w-lg flex-1 px-6 py-8">
         <Link
           to="/"
-          className="mb-8 inline-flex items-center gap-1 text-sm text-muted transition-colors hover:text-primary"
+          className="inline-flex items-center gap-1 text-xs uppercase tracking-[0.2em] text-muted transition-colors hover:text-primary"
         >
           <ArrowLeft className="h-4 w-4" />
           Volver
         </Link>
 
-        <h1 className="font-heading text-3xl font-bold text-primary">
-          Confirmar Asistencia
-        </h1>
-        <p className="mt-2 text-sm text-muted">
+        <div className="mt-10 flex flex-col items-center text-center">
+          <h1 className="font-heading text-4xl font-medium text-primary sm:text-5xl">
+            Confirmar Asistencia
+          </h1>
+          <Divider className="mt-5" />
+        </div>
+        <p className="mt-5 text-center text-sm text-muted">
           {step === 'name' && 'Ingresa tu nombre para continuar.'}
           {step === 'form' && 'Completa tu confirmación.'}
           {step === 'confirmed' && '¡Gracias por confirmar!'}
@@ -91,6 +96,8 @@ export default function RSVP() {
           )}
         </div>
       </div>
+
+      <Mountains className="mt-12 h-[22vh] min-h-[140px] max-h-[260px]" />
     </main>
   )
 }
@@ -124,7 +131,7 @@ function NameForm({
           onChange={e => onFirstName(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && valid && onSubmit()}
           autoFocus
-          className="w-full rounded-xl border border-secondary bg-white px-4 py-3 text-sm outline-none transition-colors focus:border-primary"
+          className="w-full rounded-md border border-secondary bg-white px-4 py-3 text-sm outline-none transition-colors focus:border-primary"
         />
       </div>
       <div>
@@ -138,13 +145,13 @@ function NameForm({
           value={lastName}
           onChange={e => onLastName(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && valid && onSubmit()}
-          className="w-full rounded-xl border border-secondary bg-white px-4 py-3 text-sm outline-none transition-colors focus:border-primary"
+          className="w-full rounded-md border border-secondary bg-white px-4 py-3 text-sm outline-none transition-colors focus:border-primary"
         />
       </div>
       <button
         onClick={onSubmit}
         disabled={!valid}
-        className="flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3 text-sm font-medium text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
+        className="flex w-full items-center justify-center gap-2 rounded-sm bg-primary py-3.5 text-xs font-medium uppercase tracking-[0.2em] text-white transition-colors hover:bg-primary/90 disabled:opacity-40"
       >
         Continuar
       </button>
@@ -203,7 +210,7 @@ function RSVPForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="flex items-center justify-between rounded-xl border border-secondary bg-white px-4 py-3">
+      <div className="flex items-center justify-between rounded-md border border-secondary bg-white px-4 py-3">
         <p className="font-medium text-primary">{fullName}</p>
         <button
           type="button"
@@ -222,7 +229,7 @@ function RSVPForm({
           <button
             type="button"
             onClick={() => setAttending(true)}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-xl border-2 py-3 text-sm font-medium transition-colors ${
+            className={`flex flex-1 items-center justify-center gap-2 rounded-md border-2 py-3 text-sm font-medium transition-colors ${
               attending === true
                 ? 'border-primary bg-primary text-white'
                 : 'border-secondary bg-white text-primary hover:border-primary'
@@ -234,10 +241,10 @@ function RSVPForm({
           <button
             type="button"
             onClick={() => setAttending(false)}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-xl border-2 py-3 text-sm font-medium transition-colors ${
+            className={`flex flex-1 items-center justify-center gap-2 rounded-md border-2 py-3 text-sm font-medium transition-colors ${
               attending === false
-                ? 'border-red-400 bg-red-400 text-white'
-                : 'border-secondary bg-white text-primary hover:border-red-400'
+                ? 'border-muted bg-muted text-white'
+                : 'border-secondary bg-white text-primary hover:border-muted'
             }`}
           >
             <X className="h-4 w-4" />
@@ -258,7 +265,7 @@ function RSVPForm({
               placeholder="Ninguna, vegetariano, sin gluten, etc."
               value={dietary}
               onChange={e => setDietary(e.target.value)}
-              className="w-full rounded-xl border border-secondary bg-white px-4 py-3 text-sm outline-none transition-colors focus:border-primary"
+              className="w-full rounded-md border border-secondary bg-white px-4 py-3 text-sm outline-none transition-colors focus:border-primary"
             />
           </div>
 
@@ -272,13 +279,9 @@ function RSVPForm({
       <button
         type="submit"
         disabled={attending === null || submitting}
-        className="flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3 text-sm font-medium text-white transition-colors hover:bg-primary/90 disabled:opacity-50"
+        className="flex w-full items-center justify-center gap-2 rounded-sm bg-primary py-3.5 text-xs font-medium uppercase tracking-[0.2em] text-white transition-colors hover:bg-primary/90 disabled:opacity-40"
       >
-        {submitting ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : (
-          <Heart className="h-4 w-4" />
-        )}
+        {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
         {submitting ? 'Enviando...' : 'Enviar Confirmación'}
       </button>
     </form>
@@ -299,7 +302,7 @@ function Confirmation({
     <div className="flex flex-col items-center text-center">
       <div
         className={`flex h-16 w-16 items-center justify-center rounded-full ${
-          confirmed ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-500'
+          confirmed ? 'bg-primary text-white' : 'bg-secondary text-muted'
         }`}
       >
         {confirmed ? (
@@ -309,7 +312,7 @@ function Confirmation({
         )}
       </div>
 
-      <h2 className="mt-4 font-heading text-2xl font-bold text-primary">
+      <h2 className="mt-5 font-heading text-3xl font-medium italic text-primary">
         {confirmed ? '¡Nos vemos ahí!' : 'Te echaremos de menos'}
       </h2>
 
@@ -342,9 +345,8 @@ function Confirmation({
 
       <Link
         to="/"
-        className="mt-6 inline-flex items-center gap-2 rounded-full bg-primary px-8 py-3 text-sm font-medium text-white transition-colors hover:bg-primary/90"
+        className="mt-8 inline-flex items-center gap-2 rounded-sm bg-primary px-8 py-3 text-xs font-medium uppercase tracking-[0.2em] text-white transition-colors hover:bg-primary/90"
       >
-        <Heart className="h-4 w-4" />
         Volver al inicio
       </Link>
     </div>
@@ -388,7 +390,7 @@ function AddToCalendarButton() {
     <div className="relative mt-6">
       <button
         onClick={() => setOpen(o => !o)}
-        className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-white px-6 py-3 text-sm font-medium text-primary shadow-sm transition-all hover:bg-primary/5 hover:shadow-md"
+        className="inline-flex items-center gap-2 rounded-sm border border-primary/25 bg-white px-6 py-3 text-xs font-medium uppercase tracking-[0.15em] text-primary transition-colors hover:bg-secondary/50"
       >
         <Calendar className="h-4 w-4" />
         Guardar en mi calendario
@@ -398,7 +400,7 @@ function AddToCalendarButton() {
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute left-1/2 z-20 mt-2 w-56 -translate-x-1/2 overflow-hidden rounded-xl border border-secondary bg-white shadow-lg">
+          <div className="absolute left-1/2 z-20 mt-2 w-56 -translate-x-1/2 overflow-hidden rounded-md border border-secondary bg-white shadow-lg">
             <a
               href={GOOGLE_CAL_URL}
               target="_blank"

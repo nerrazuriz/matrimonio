@@ -12,8 +12,8 @@ export default defineConfig({
         name: 'Nuestro Matrimonio',
         short_name: 'Boda',
         description: 'App de nuestro matrimonio',
-        theme_color: '#FDFBF7',
-        background_color: '#FDFBF7',
+        theme_color: '#F7F8F6',
+        background_color: '#F7F8F6',
         display: 'standalone',
         start_url: '/',
         icons: [
