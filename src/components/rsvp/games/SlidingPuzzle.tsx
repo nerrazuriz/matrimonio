@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import photo from '@/assets/novios.jpg'
 import { cn } from '@/lib/cn'
@@ -6,6 +6,13 @@ import { cn } from '@/lib/cn'
 const SIZE = 3
 const EMPTY = SIZE * SIZE - 1
 const SHUFFLE_MOVES = 60
+const SWIPE_MIN_PX = 24
+const ARROWS: Record<string, [number, number] | undefined> = {
+  ArrowLeft: [-1, 0],
+  ArrowRight: [1, 0],
+  ArrowUp: [0, -1],
+  ArrowDown: [0, 1],
+}
 
 const neighbors = (pos: number) => {
   const r = Math.floor(pos / SIZE), c = pos % SIZE
@@ -62,10 +69,66 @@ export default function SlidingPuzzle({ onWin }: { onWin: () => void }) {
     setMoves(m => m + 1)
   }
 
+  // Slides the tile next to the empty slot in direction (dx, dy), i.e. the tile on the opposite side.
+  function slide(dx: number, dy: number) {
+    const empty = board.indexOf(EMPTY)
+    const row = Math.floor(empty / SIZE) - dy, col = (empty % SIZE) - dx
+    if (row >= 0 && row < SIZE && col >= 0 && col < SIZE) move(row * SIZE + col)
+  }
+
+  const slideRef = useRef(slide)
+  slideRef.current = slide
+  const gestureRef = useRef<{ id: number; x: number; y: number } | null>(null)
+  const swipedRef = useRef(false)
+
+  useEffect(() => {
+    if (solved) return
+    const onPointerUp = (e: PointerEvent) => {
+      const g = gestureRef.current
+      if (!g || g.id !== e.pointerId) return
+      gestureRef.current = null
+      const dx = e.clientX - g.x, dy = e.clientY - g.y
+      if (Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE_MIN_PX) return
+      swipedRef.current = true
+      if (Math.abs(dx) > Math.abs(dy)) slideRef.current(Math.sign(dx), 0)
+      else slideRef.current(0, Math.sign(dy))
+    }
+    const onPointerCancel = () => { gestureRef.current = null }
+    const onKeyDown = (e: KeyboardEvent) => {
+      const dir = ARROWS[e.key]
+      if (!dir) return
+      e.preventDefault()
+      slideRef.current(dir[0], dir[1])
+    }
+    window.addEventListener('pointerup', onPointerUp)
+    window.addEventListener('pointercancel', onPointerCancel)
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      window.removeEventListener('pointerup', onPointerUp)
+      window.removeEventListener('pointercancel', onPointerCancel)
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [solved])
+
+  function handlePointerDown(e: React.PointerEvent) {
+    if (!e.isPrimary) return
+    swipedRef.current = false
+    gestureRef.current = { id: e.pointerId, x: e.clientX, y: e.clientY }
+  }
+
+  function handleTileClick(pos: number) {
+    // A swipe that ends on a tile also fires a click; the swipe already moved a piece.
+    if (swipedRef.current) {
+      swipedRef.current = false
+      return
+    }
+    move(pos)
+  }
+
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex touch-none select-none flex-col items-center" onPointerDown={handlePointerDown}>
       <p className="text-center text-sm text-muted">
-        Toca una pieza junto al espacio vacío para moverla y arma la foto.
+        Toca o desliza una pieza hacia el espacio vacío para armar la foto.
       </p>
 
       <div className="relative mt-6 aspect-square w-full max-w-sm overflow-hidden rounded-md border border-secondary bg-secondary/50">
@@ -75,7 +138,7 @@ export default function SlidingPuzzle({ onWin }: { onWin: () => void }) {
           return (
             <button
               key={tile}
-              onClick={() => move(pos)}
+              onClick={() => handleTileClick(pos)}
               aria-label={`Pieza ${tile + 1}`}
               className="absolute left-0 top-0 h-1/3 w-1/3 p-[1.5px] motion-safe:transition-transform motion-safe:duration-150"
               style={{ transform: `translate(${col * 100}%, ${row * 100}%)` }}
