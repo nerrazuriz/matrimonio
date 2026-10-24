@@ -73,6 +73,40 @@ export default function ClimbGame({ onWin }: { onWin: () => void }) {
     return () => clearTimeout(id)
   }, [won, onWin])
 
+  const tapRef = useRef(handleTap)
+  tapRef.current = handleTap
+
+  useEffect(() => {
+    if (won) return
+    // Taps on links/buttons (e.g. "Prefiero el modo fácil") must not count as a climb attempt.
+    const isControl = (t: EventTarget | null) =>
+      t instanceof Element && !!t.closest('a, button, input, textarea, select, label')
+
+    const onPointerDown = (e: PointerEvent) => {
+      if (e.button === 0 && !isControl(e.target)) tapRef.current()
+    }
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.key === ' ' || e.key === 'Enter') && !e.repeat && !isControl(e.target)) {
+        e.preventDefault()
+        tapRef.current()
+      }
+    }
+
+    const root = document.documentElement
+    const prevTouchAction = root.style.touchAction
+    const prevUserSelect = document.body.style.userSelect
+    root.style.touchAction = 'manipulation'
+    document.body.style.userSelect = 'none'
+    window.addEventListener('pointerdown', onPointerDown)
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      window.removeEventListener('pointerdown', onPointerDown)
+      window.removeEventListener('keydown', onKeyDown)
+      root.style.touchAction = prevTouchAction
+      document.body.style.userSelect = prevUserSelect
+    }
+  }, [won])
+
   function handleTap() {
     const now = performance.now()
     if (won || now < lockUntilRef.current) return
@@ -167,13 +201,9 @@ export default function ClimbGame({ onWin }: { onWin: () => void }) {
             />
           </div>
 
-          <button
-            onPointerDown={e => { if (e.button === 0) handleTap() }}
-            onClick={e => { if (e.detail === 0) handleTap() }}
-            className="mt-6 w-full max-w-sm touch-manipulation select-none rounded-sm bg-primary py-4 text-xs font-medium uppercase tracking-[0.2em] text-white transition-colors active:bg-primary/80"
-          >
-            ¡Subir!
-          </button>
+          <p className="mt-6 text-xs font-medium uppercase tracking-[0.2em] text-primary">
+            Toca en cualquier parte para subir
+          </p>
 
           <p className="mt-4 h-5 text-sm text-muted" aria-live="polite">
             {feedback === 'hit' && '¡Bien! Sigan subiendo.'}
