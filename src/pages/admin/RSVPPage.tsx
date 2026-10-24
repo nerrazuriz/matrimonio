@@ -3,7 +3,6 @@ import { Link2, Unlink, Search, X, Check, Pencil, Trash2, RefreshCw, Trophy } fr
 import { supabase } from '@/lib/supabase'
 import type { Guest, RsvpMode, RsvpSubmission } from '@/types/database'
 import { cn } from '@/lib/cn'
-import { formatElapsed } from '@/lib/time'
 
 const normalize = (s: string) =>
   s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().replace(/\s+/g, ' ').trim()
@@ -26,8 +25,8 @@ const modeBadge: Record<RsvpMode, string> = {
 
 const modeLabel: Record<RsvpMode, string> = {
   easy: 'Fácil',
-  hard: 'Difícil',
-  expert: 'Experto',
+  hard: 'Difícil (versión anterior)',
+  expert: 'Difícil · concursa',
 }
 
 type Filter = 'all' | 'unlinked' | 'linked' | 'expert'
@@ -114,7 +113,7 @@ export default function RSVPPage() {
     { key: 'all', label: `Todas (${submissions.length})` },
     { key: 'unlinked', label: `Sin vincular (${unlinked.length})` },
     { key: 'linked', label: `Vinculadas (${linked.length})` },
-    { key: 'expert', label: `Expertos (${experts.length})` },
+    { key: 'expert', label: `Concursan (${experts.length})` },
   ]
 
   function drawWinner() {
@@ -247,7 +246,7 @@ export default function RSVPPage() {
           <button
             onClick={drawWinner}
             disabled={experts.length === 0}
-            title={experts.length === 0 ? 'Aún no hay expertos confirmados' : undefined}
+            title={experts.length === 0 ? 'Aún nadie ha completado el modo difícil' : undefined}
             className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-900 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-40"
           >
             <Trophy size={14} />
@@ -341,13 +340,8 @@ export default function RSVPPage() {
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         {sub.rsvp_mode ? (
-                          <span className="flex items-center gap-1.5">
-                            <span className={cn('px-2 py-1 rounded-full text-xs font-medium', modeBadge[sub.rsvp_mode])}>
-                              {modeLabel[sub.rsvp_mode]}
-                            </span>
-                            {sub.rsvp_mode === 'expert' && sub.challenge_ms !== null && (
-                              <span className="text-xs text-slate-400 tabular-nums">{formatElapsed(sub.challenge_ms)}</span>
-                            )}
+                          <span className={cn('px-2 py-1 rounded-full text-xs font-medium', modeBadge[sub.rsvp_mode])}>
+                            {modeLabel[sub.rsvp_mode]}
                           </span>
                         ) : (
                           <span className="text-slate-400 text-xs">—</span>
@@ -490,7 +484,7 @@ export default function RSVPPage() {
       {winner && (
         <Modal
           title="Sorteo del cotillón especial"
-          subtitle={`Entre ${experts.length} ${experts.length === 1 ? 'experto confirmado' : 'expertos confirmados'}`}
+          subtitle={`Entre ${experts.length} ${experts.length === 1 ? 'persona que completó' : 'personas que completaron'} el modo difícil`}
           onClose={() => setWinner(null)}
         >
           <div className="p-6 text-center">
@@ -499,9 +493,6 @@ export default function RSVPPage() {
             <p className="mt-1 text-2xl font-bold text-slate-900">{winner.entered_name}</p>
             {winner.linked_guest_id && guestMap[winner.linked_guest_id] && (
               <p className="mt-1 text-sm text-slate-500">Lista oficial: {guestMap[winner.linked_guest_id]!.full_name}</p>
-            )}
-            {winner.challenge_ms !== null && (
-              <p className="mt-1 text-sm text-slate-500">Tiempo: {formatElapsed(winner.challenge_ms)}</p>
             )}
             <div className="mt-6 flex justify-center gap-2">
               {experts.length > 1 && (

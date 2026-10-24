@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { CHESS_START, CHESS_STEPS } from '@/data/expert'
-import type { GameProps } from '../../Challenge'
+import { CHESS_START, CHESS_STEPS } from '@/data/chess'
+import type { GameProps } from '../Challenge'
 import { cn } from '@/lib/cn'
 
 const FILES = 'abcdefgh'
@@ -23,7 +23,7 @@ function parse(placement: string): Record<string, string> {
 
 type Phase = 'player' | 'reply' | 'mate'
 
-export default function ChessGame({ onWin, onMistake }: GameProps) {
+export default function ChessGame({ onWin }: GameProps) {
   const [step, setStep] = useState(0)
   const [placement, setPlacement] = useState(CHESS_START)
   const [phase, setPhase] = useState<Phase>('player')
@@ -67,7 +67,6 @@ export default function ChessGame({ onWin, onMistake }: GameProps) {
     setSelected(null)
     if (selected + square !== expected.move) {
       setWrong(square)
-      onMistake()
       return
     }
     setWrong(null)
