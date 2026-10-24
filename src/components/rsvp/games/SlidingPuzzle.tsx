@@ -76,9 +76,18 @@ export default function SlidingPuzzle({ onWin }: { onWin: () => void }) {
     if (row >= 0 && row < SIZE && col >= 0 && col < SIZE) move(row * SIZE + col)
   }
 
+  // Moves the swiped tile only when the swipe points from that tile toward the empty slot.
+  function swipeTile(pos: number, dx: number, dy: number) {
+    const row = Math.floor(pos / SIZE) + dy, col = (pos % SIZE) + dx
+    if (row < 0 || row >= SIZE || col < 0 || col >= SIZE) return
+    if (board[row * SIZE + col] === EMPTY) move(pos)
+  }
+
   const slideRef = useRef(slide)
   slideRef.current = slide
-  const gestureRef = useRef<{ id: number; x: number; y: number } | null>(null)
+  const swipeTileRef = useRef(swipeTile)
+  swipeTileRef.current = swipeTile
+  const gestureRef = useRef<{ id: number; x: number; y: number; pos: number } | null>(null)
   const swipedRef = useRef(false)
 
   useEffect(() => {
@@ -90,8 +99,8 @@ export default function SlidingPuzzle({ onWin }: { onWin: () => void }) {
       const dx = e.clientX - g.x, dy = e.clientY - g.y
       if (Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE_MIN_PX) return
       swipedRef.current = true
-      if (Math.abs(dx) > Math.abs(dy)) slideRef.current(Math.sign(dx), 0)
-      else slideRef.current(0, Math.sign(dy))
+      if (Math.abs(dx) > Math.abs(dy)) swipeTileRef.current(g.pos, Math.sign(dx), 0)
+      else swipeTileRef.current(g.pos, 0, Math.sign(dy))
     }
     const onPointerCancel = () => { gestureRef.current = null }
     const onKeyDown = (e: KeyboardEvent) => {
@@ -110,10 +119,10 @@ export default function SlidingPuzzle({ onWin }: { onWin: () => void }) {
     }
   }, [solved])
 
-  function handlePointerDown(e: React.PointerEvent) {
+  function handleTilePointerDown(e: React.PointerEvent, pos: number) {
     if (!e.isPrimary) return
     swipedRef.current = false
-    gestureRef.current = { id: e.pointerId, x: e.clientX, y: e.clientY }
+    gestureRef.current = { id: e.pointerId, x: e.clientX, y: e.clientY, pos }
   }
 
   function handleTileClick(pos: number) {
@@ -126,7 +135,7 @@ export default function SlidingPuzzle({ onWin }: { onWin: () => void }) {
   }
 
   return (
-    <div className="flex touch-none select-none flex-col items-center" onPointerDown={handlePointerDown}>
+    <div className="flex select-none flex-col items-center">
       <p className="text-center text-sm text-muted">
         Toca o desliza una pieza hacia el espacio vacío para armar la foto.
       </p>
@@ -138,9 +147,10 @@ export default function SlidingPuzzle({ onWin }: { onWin: () => void }) {
           return (
             <button
               key={tile}
+              onPointerDown={e => handleTilePointerDown(e, pos)}
               onClick={() => handleTileClick(pos)}
               aria-label={`Pieza ${tile + 1}`}
-              className="absolute left-0 top-0 h-1/3 w-1/3 p-[1.5px] motion-safe:transition-transform motion-safe:duration-150"
+              className="absolute left-0 top-0 h-1/3 w-1/3 touch-none p-[1.5px] motion-safe:transition-transform motion-safe:duration-150"
               style={{ transform: `translate(${col * 100}%, ${row * 100}%)` }}
             >
               <span
