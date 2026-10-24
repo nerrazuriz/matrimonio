@@ -8,8 +8,6 @@ import type { RsvpSubmission } from '@/types/database'
 
 const STORAGE_KEY = 'wedding_rsvp_submission'
 
-type Step = 'name' | 'form' | 'confirmed'
-
 function loadSaved(): RsvpSubmission | null {
   try {
     const s = localStorage.getItem(STORAGE_KEY)
@@ -24,32 +22,17 @@ function saveSub(s: RsvpSubmission) {
 }
 
 export default function RSVP() {
-  const saved = loadSaved()
-  const [step, setStep] = useState<Step>(saved ? 'confirmed' : 'name')
-  const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName] = useState('')
-  const [submission, setSubmission] = useState<RsvpSubmission | null>(saved)
-
-  const handleNameSubmit = () => {
-    if (!firstName.trim() || !lastName.trim()) return
-    setStep('form')
-  }
+  const [submission, setSubmission] = useState<RsvpSubmission | null>(loadSaved)
 
   const handleConfirmed = (s: RsvpSubmission) => {
     saveSub(s)
     setSubmission(s)
-    setStep('confirmed')
   }
 
   const handleChangeGuest = () => {
     try { localStorage.removeItem(STORAGE_KEY) } catch { /* noop */ }
-    setFirstName('')
-    setLastName('')
     setSubmission(null)
-    setStep('name')
   }
-
-  const fullName = `${firstName.trim()} ${lastName.trim()}`.trim()
 
   return (
     <main className="flex min-h-svh flex-col bg-gradient-to-b from-secondary/60 via-background to-background">
@@ -69,30 +52,14 @@ export default function RSVP() {
           <Divider className="mt-5" />
         </div>
         <p className="mt-5 text-center text-sm text-muted">
-          {step === 'name' && 'Ingresa tu nombre para continuar.'}
-          {step === 'form' && 'Completa tu confirmación.'}
-          {step === 'confirmed' && '¡Gracias por confirmar!'}
+          {submission ? '¡Gracias por confirmar!' : 'Completa tus datos para confirmar.'}
         </p>
 
         <div className="mt-8">
-          {step === 'name' && (
-            <NameForm
-              firstName={firstName}
-              lastName={lastName}
-              onFirstName={setFirstName}
-              onLastName={setLastName}
-              onSubmit={handleNameSubmit}
-            />
-          )}
-          {step === 'form' && (
-            <RSVPForm
-              fullName={fullName}
-              onConfirmed={handleConfirmed}
-              onChangeGuest={handleChangeGuest}
-            />
-          )}
-          {step === 'confirmed' && submission && (
+          {submission ? (
             <Confirmation submission={submission} onChangeGuest={handleChangeGuest} />
+          ) : (
+            <RSVPForm onConfirmed={handleConfirmed} />
           )}
         </div>
       </div>
@@ -102,78 +69,18 @@ export default function RSVP() {
   )
 }
 
-function NameForm({
-  firstName,
-  lastName,
-  onFirstName,
-  onLastName,
-  onSubmit,
-}: {
-  firstName: string
-  lastName: string
-  onFirstName: (v: string) => void
-  onLastName: (v: string) => void
-  onSubmit: () => void
-}) {
-  const valid = firstName.trim().length > 0 && lastName.trim().length > 0
+const inputClass =
+  'w-full rounded-md border border-secondary bg-white px-4 py-3 text-sm outline-none transition-colors focus:border-primary'
 
-  return (
-    <div className="space-y-4">
-      <div>
-        <label htmlFor="firstName" className="mb-1 block text-sm font-medium text-primary">
-          Nombre
-        </label>
-        <input
-          id="firstName"
-          type="text"
-          placeholder="Tu nombre"
-          value={firstName}
-          onChange={e => onFirstName(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && valid && onSubmit()}
-          autoFocus
-          className="w-full rounded-md border border-secondary bg-white px-4 py-3 text-sm outline-none transition-colors focus:border-primary"
-        />
-      </div>
-      <div>
-        <label htmlFor="lastName" className="mb-1 block text-sm font-medium text-primary">
-          Apellido
-        </label>
-        <input
-          id="lastName"
-          type="text"
-          placeholder="Tu apellido"
-          value={lastName}
-          onChange={e => onLastName(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && valid && onSubmit()}
-          className="w-full rounded-md border border-secondary bg-white px-4 py-3 text-sm outline-none transition-colors focus:border-primary"
-        />
-      </div>
-      <button
-        onClick={onSubmit}
-        disabled={!valid}
-        className="flex w-full items-center justify-center gap-2 rounded-sm bg-primary py-3.5 text-xs font-medium uppercase tracking-[0.2em] text-white transition-colors hover:bg-primary/90 disabled:opacity-40"
-      >
-        Continuar
-      </button>
-    </div>
-  )
-}
-
-function RSVPForm({
-  fullName,
-  onConfirmed,
-  onChangeGuest,
-}: {
-  fullName: string
-  onConfirmed: (s: RsvpSubmission) => void
-  onChangeGuest: () => void
-}) {
+function RSVPForm({ onConfirmed }: { onConfirmed: (s: RsvpSubmission) => void }) {
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
   const [plusOne, setPlusOne] = useState<boolean | null>(null)
-  const [dietary, setDietary] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
-  const canSubmit = plusOne !== null
+  const fullName = `${firstName.trim()} ${lastName.trim()}`
+  const canSubmit = firstName.trim() !== '' && lastName.trim() !== '' && plusOne !== null
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -187,7 +94,7 @@ function RSVPForm({
       id: crypto.randomUUID(),
       entered_name: fullName,
       rsvp_status: 'confirmed' as const,
-      dietary_restrictions: dietary || null,
+      dietary_restrictions: null,
       plus_one: plusOne === true,
       plus_one_name: null,
       plus_one_dietary: null,
@@ -213,15 +120,37 @@ function RSVPForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="flex items-center justify-between rounded-md border border-secondary bg-white px-4 py-3">
-        <p className="font-medium text-primary">{fullName}</p>
-        <button
-          type="button"
-          onClick={onChangeGuest}
-          className="text-xs text-muted underline hover:text-primary"
-        >
-          Cambiar
-        </button>
+      <div className="space-y-4">
+        <div>
+          <label htmlFor="firstName" className="mb-1 block text-sm font-medium">
+            Nombre
+          </label>
+          <input
+            id="firstName"
+            type="text"
+            required
+            autoComplete="given-name"
+            placeholder="Tu nombre"
+            value={firstName}
+            onChange={e => setFirstName(e.target.value)}
+            className={inputClass}
+          />
+        </div>
+        <div>
+          <label htmlFor="lastName" className="mb-1 block text-sm font-medium">
+            Apellido
+          </label>
+          <input
+            id="lastName"
+            type="text"
+            required
+            autoComplete="family-name"
+            placeholder="Tu apellido"
+            value={lastName}
+            onChange={e => setLastName(e.target.value)}
+            className={inputClass}
+          />
+        </div>
       </div>
 
       <fieldset>
@@ -248,20 +177,6 @@ function RSVPForm({
           ))}
         </div>
       </fieldset>
-
-      <div>
-        <label htmlFor="dietary" className="mb-1 block text-sm font-medium">
-          Restricciones alimentarias
-        </label>
-        <input
-          id="dietary"
-          type="text"
-          placeholder="Ninguna, vegetariano, sin gluten, etc."
-          value={dietary}
-          onChange={e => setDietary(e.target.value)}
-          className="w-full rounded-md border border-secondary bg-white px-4 py-3 text-sm outline-none transition-colors focus:border-primary"
-        />
-      </div>
 
       {error && (
         <p className="text-center text-sm text-red-500">{error}</p>
