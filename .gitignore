@@ -6,3 +6,5 @@ dev-dist
 *.local
 .DS_Store
 *.tsbuildinfo
+# Contains the Supabase service_role key
+seed-guests.mjs

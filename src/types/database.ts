@@ -70,9 +70,13 @@ export interface GamePlayer {
   created_at: string
 }
 
+export type RsvpMode = 'easy' | 'hard' | 'expert'
+
 export interface RsvpSubmission {
   id: string
   entered_name: string
+  rsvp_mode: RsvpMode | null
+  challenge_ms: number | null
   rsvp_status: 'confirmed' | 'declined'
   dietary_restrictions: string | null
   plus_one: boolean

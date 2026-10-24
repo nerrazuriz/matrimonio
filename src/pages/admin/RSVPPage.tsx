@@ -1,8 +1,9 @@
 import { useEffect, useState, useMemo } from 'react'
-import { Link2, Unlink, Search, X, Check, Pencil, Trash2, RefreshCw } from 'lucide-react'
+import { Link2, Unlink, Search, X, Check, Pencil, Trash2, RefreshCw, Trophy } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import type { Guest, RsvpSubmission } from '@/types/database'
+import type { Guest, RsvpMode, RsvpSubmission } from '@/types/database'
 import { cn } from '@/lib/cn'
+import { formatElapsed } from '@/lib/time'
 
 const normalize = (s: string) =>
   s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().replace(/\s+/g, ' ').trim()
@@ -17,7 +18,19 @@ const statusLabel = {
   declined: 'Declinado',
 }
 
-type Filter = 'all' | 'unlinked' | 'linked'
+const modeBadge: Record<RsvpMode, string> = {
+  easy: 'bg-slate-100 text-slate-600',
+  hard: 'bg-blue-100 text-blue-700',
+  expert: 'bg-slate-900 text-white',
+}
+
+const modeLabel: Record<RsvpMode, string> = {
+  easy: 'Fácil',
+  hard: 'Difícil',
+  expert: 'Experto',
+}
+
+type Filter = 'all' | 'unlinked' | 'linked' | 'expert'
 
 type EditForm = {
   entered_name: string
@@ -42,6 +55,7 @@ export default function RSVPPage() {
   const [editTarget, setEditTarget] = useState<RsvpSubmission | null>(null)
   const [editForm, setEditForm] = useState<EditForm | null>(null)
   const [saving, setSaving] = useState(false)
+  const [winner, setWinner] = useState<RsvpSubmission | null>(null)
 
   async function load() {
     const [{ data: subs, error: e1 }, { data: gs, error: e2 }] = await Promise.all([
@@ -86,7 +100,13 @@ export default function RSVPPage() {
     g => g.rsvp_status === 'pending' && !linkedGuestIds.has(g.id)
   )
 
-  const byFilter = filter === 'linked' ? linked : filter === 'unlinked' ? unlinked : submissions
+  const experts = confirmedSubs.filter(s => s.rsvp_mode === 'expert')
+
+  const byFilter =
+    filter === 'linked' ? linked
+      : filter === 'unlinked' ? unlinked
+        : filter === 'expert' ? experts
+          : submissions
   const tableNq = normalize(tableQuery)
   const visible = tableNq ? byFilter.filter(s => normalize(s.entered_name).includes(tableNq)) : byFilter
 
@@ -94,7 +114,14 @@ export default function RSVPPage() {
     { key: 'all', label: `Todas (${submissions.length})` },
     { key: 'unlinked', label: `Sin vincular (${unlinked.length})` },
     { key: 'linked', label: `Vinculadas (${linked.length})` },
+    { key: 'expert', label: `Expertos (${experts.length})` },
   ]
+
+  function drawWinner() {
+    if (experts.length === 0) return
+    const pool = experts.length > 1 && winner ? experts.filter(s => s.id !== winner.id) : experts
+    setWinner(pool[Math.floor(Math.random() * pool.length)]!)
+  }
 
   async function handleLink(guest: Guest) {
     if (!linkTarget) return
@@ -216,21 +243,33 @@ export default function RSVPPage() {
             Respuestas recibidas desde el formulario. Vincúlalas con la lista oficial de invitados.
           </p>
         </div>
-        <button
-          onClick={refresh}
-          disabled={refreshing}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-50"
-        >
-          <RefreshCw size={14} className={cn(refreshing && 'animate-spin')} />
-          Actualizar
-        </button>
+        <div className="flex shrink-0 gap-2">
+          <button
+            onClick={drawWinner}
+            disabled={experts.length === 0}
+            title={experts.length === 0 ? 'Aún no hay expertos confirmados' : undefined}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-900 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-40"
+          >
+            <Trophy size={14} />
+            Sortear ganador
+          </button>
+          <button
+            onClick={refresh}
+            disabled={refreshing}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+          >
+            <RefreshCw size={14} className={cn(refreshing && 'animate-spin')} />
+            Actualizar
+          </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
         <Stat value={submissions.length} label="Confirmaciones recibidas" />
         <Stat value={totalPeople} label="Personas (incl. acompañantes)" />
         <Stat value={unlinked.length} label="Sin vincular" className="text-amber-600" />
         <Stat value={officialPending.length} label="Pendientes en lista oficial" className="text-slate-500" />
+        <Stat value={experts.length} label="Concursan por cotillón" />
       </div>
 
       {error && (
@@ -280,6 +319,7 @@ export default function RSVPPage() {
                 <tr className="border-b border-slate-200 bg-slate-50">
                   <th className="text-left px-4 py-3 font-medium text-slate-600">Nombre ingresado</th>
                   <th className="text-left px-4 py-3 font-medium text-slate-600">Estado</th>
+                  <th className="text-left px-4 py-3 font-medium text-slate-600">Modo</th>
                   <th className="text-left px-4 py-3 font-medium text-slate-600">Acompañante</th>
                   <th className="text-left px-4 py-3 font-medium text-slate-600">Restricciones</th>
                   <th className="text-left px-4 py-3 font-medium text-slate-600">Vinculado a</th>
@@ -298,6 +338,20 @@ export default function RSVPPage() {
                         <span className={cn('px-2 py-1 rounded-full text-xs font-medium', statusBadge[sub.rsvp_status])}>
                           {statusLabel[sub.rsvp_status]}
                         </span>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {sub.rsvp_mode ? (
+                          <span className="flex items-center gap-1.5">
+                            <span className={cn('px-2 py-1 rounded-full text-xs font-medium', modeBadge[sub.rsvp_mode])}>
+                              {modeLabel[sub.rsvp_mode]}
+                            </span>
+                            {sub.rsvp_mode === 'expert' && sub.challenge_ms !== null && (
+                              <span className="text-xs text-slate-400 tabular-nums">{formatElapsed(sub.challenge_ms)}</span>
+                            )}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 text-xs">—</span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-slate-600">
                         {sub.plus_one_name || (sub.plus_one ? 'Sí' : 'No')}
@@ -429,6 +483,39 @@ export default function RSVPPage() {
                 })}
               </ul>
             )}
+          </div>
+        </Modal>
+      )}
+
+      {winner && (
+        <Modal
+          title="Sorteo del cotillón especial"
+          subtitle={`Entre ${experts.length} ${experts.length === 1 ? 'experto confirmado' : 'expertos confirmados'}`}
+          onClose={() => setWinner(null)}
+        >
+          <div className="p-6 text-center">
+            <Trophy className="mx-auto h-8 w-8 text-amber-500" />
+            <p className="mt-3 text-xs uppercase tracking-wider text-slate-400">Ganador</p>
+            <p className="mt-1 text-2xl font-bold text-slate-900">{winner.entered_name}</p>
+            {winner.linked_guest_id && guestMap[winner.linked_guest_id] && (
+              <p className="mt-1 text-sm text-slate-500">Lista oficial: {guestMap[winner.linked_guest_id]!.full_name}</p>
+            )}
+            {winner.challenge_ms !== null && (
+              <p className="mt-1 text-sm text-slate-500">Tiempo: {formatElapsed(winner.challenge_ms)}</p>
+            )}
+            <div className="mt-6 flex justify-center gap-2">
+              {experts.length > 1 && (
+                <button onClick={drawWinner} className="px-4 py-2 rounded-lg text-sm text-slate-600 hover:bg-slate-100">
+                  Sortear de nuevo
+                </button>
+              )}
+              <button
+                onClick={() => setWinner(null)}
+                className="px-4 py-2 rounded-lg bg-slate-900 text-sm font-medium text-white hover:bg-slate-800"
+              >
+                Listo
+              </button>
+            </div>
           </div>
         </Modal>
       )}

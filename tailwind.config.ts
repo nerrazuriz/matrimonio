@@ -20,6 +20,7 @@ export default {
       },
       fontFamily: {
         heading: ['"Cormorant Garamond"', 'serif'],
+        chess: ['"Noto Sans Symbols 2"', 'sans-serif'],
         body: ['Inter', 'sans-serif'],
         medieval: ['Cinzel', 'serif'],
         scroll: ['"IM Fell English"', 'serif'],

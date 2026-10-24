@@ -5,21 +5,24 @@ import { supabase } from '@/lib/supabase'
 import Mountains from '@/components/decor/Mountains'
 import { Divider } from '@/components/decor/Ornaments'
 import ModeSelect from '@/components/rsvp/ModeSelect'
-import Challenge, { CHALLENGE_KEY } from '@/components/rsvp/Challenge'
-import type { RsvpSubmission } from '@/types/database'
+import Challenge from '@/components/rsvp/Challenge'
+import { CHALLENGE_STORAGE_KEYS, EXPERT_CHALLENGE, HARD_CHALLENGE } from '@/components/rsvp/challenges'
+import { formatElapsed } from '@/lib/time'
+import type { RsvpMode, RsvpSubmission } from '@/types/database'
 
 const STORAGE_KEY = 'wedding_rsvp_submission'
 
-type Stage = 'choose' | 'challenge' | 'form'
+type Stage = 'choose' | 'hard' | 'expert' | 'form'
 
 const STAGE_HINT: Record<Stage, string> = {
   choose: '¿Cómo quieres confirmar?',
-  challenge: 'Supera los tres desafíos para llegar al formulario.',
+  hard: 'Supera los tres desafíos para llegar al formulario.',
+  expert: 'Supera el modo experto y concursa por un cotillón especial.',
   form: 'Completa tus datos para confirmar.',
 }
 
 function clearProgress() {
-  try { sessionStorage.removeItem(CHALLENGE_KEY) } catch { /* noop */ }
+  try { CHALLENGE_STORAGE_KEYS.forEach(k => sessionStorage.removeItem(k)) } catch { /* noop */ }
 }
 
 function loadSaved(): RsvpSubmission | null {
@@ -38,10 +41,16 @@ function saveSub(s: RsvpSubmission) {
 export default function RSVP() {
   const [submission, setSubmission] = useState<RsvpSubmission | null>(loadSaved)
   const [stage, setStageState] = useState<Stage>('choose')
+  const [mode, setMode] = useState<{ mode: RsvpMode; ms: number | null }>({ mode: 'easy', ms: null })
 
   const setStage = (s: Stage) => {
     setStageState(s)
     window.scrollTo({ top: 0 })
+  }
+
+  const goToForm = (m: RsvpMode, ms: number | null = null) => {
+    setMode({ mode: m, ms })
+    setStage('form')
   }
 
   const handleConfirmed = (s: RsvpSubmission) => {
@@ -82,11 +91,27 @@ export default function RSVP() {
           {submission ? (
             <Confirmation submission={submission} onChangeGuest={handleChangeGuest} />
           ) : stage === 'choose' ? (
-            <ModeSelect onEasy={() => setStage('form')} onHard={() => setStage('challenge')} />
-          ) : stage === 'challenge' ? (
-            <Challenge onComplete={() => setStage('form')} onEasy={() => setStage('form')} />
+            <ModeSelect
+              onEasy={() => goToForm('easy')}
+              onHard={() => setStage('hard')}
+              onExpert={() => setStage('expert')}
+            />
+          ) : stage === 'hard' ? (
+            <Challenge
+              key="hard"
+              config={HARD_CHALLENGE}
+              onComplete={() => goToForm('hard')}
+              onEasy={() => goToForm('easy')}
+            />
+          ) : stage === 'expert' ? (
+            <Challenge
+              key="expert"
+              config={EXPERT_CHALLENGE}
+              onComplete={ms => goToForm('expert', ms)}
+              onEasy={() => goToForm('easy')}
+            />
           ) : (
-            <RSVPForm onConfirmed={handleConfirmed} />
+            <RSVPForm mode={mode.mode} challengeMs={mode.ms} onConfirmed={handleConfirmed} />
           )}
         </div>
       </div>
@@ -99,7 +124,11 @@ export default function RSVP() {
 const inputClass =
   'w-full rounded-md border border-secondary bg-white px-4 py-3 text-sm outline-none transition-colors focus:border-primary'
 
-function RSVPForm({ onConfirmed }: { onConfirmed: (s: RsvpSubmission) => void }) {
+function RSVPForm({ mode, challengeMs, onConfirmed }: {
+  mode: RsvpMode
+  challengeMs: number | null
+  onConfirmed: (s: RsvpSubmission) => void
+}) {
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [plusOne, setPlusOne] = useState<boolean | null>(null)
@@ -125,6 +154,8 @@ function RSVPForm({ onConfirmed }: { onConfirmed: (s: RsvpSubmission) => void })
       plus_one: plusOne === true,
       plus_one_name: null,
       plus_one_dietary: null,
+      rsvp_mode: mode,
+      challenge_ms: mode === 'expert' && challengeMs !== null ? Math.round(challengeMs) : null,
     }
 
     const { error: err } = await supabase
@@ -263,6 +294,16 @@ function Confirmation({
 
       {confirmed && submission.plus_one && (
         <p className="mt-1 text-xs text-muted">Vienes con acompañante</p>
+      )}
+
+      {confirmed && submission.rsvp_mode === 'expert' && (
+        <div className="mt-6 w-full rounded-md border border-ink bg-ink px-5 py-4 text-white">
+          <p className="text-[10px] uppercase tracking-[0.3em] text-white/60">Modo experto</p>
+          <p className="mt-1 font-heading text-xl italic">Estás participando por el cotillón especial</p>
+          {submission.challenge_ms !== null && (
+            <p className="mt-1 text-xs text-white/70">Tiempo: {formatElapsed(submission.challenge_ms)}</p>
+          )}
+        </div>
       )}
 
       {confirmed && <AddToCalendarButton />}
