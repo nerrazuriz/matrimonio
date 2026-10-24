@@ -4,9 +4,36 @@ import { ArrowLeft, Check, X, Loader2, Calendar, ChevronDown } from 'lucide-reac
 import { supabase } from '@/lib/supabase'
 import Mountains from '@/components/decor/Mountains'
 import { Divider } from '@/components/decor/Ornaments'
+import ModeSelect from '@/components/rsvp/ModeSelect'
+import Challenge, { CHALLENGE_KEY } from '@/components/rsvp/Challenge'
 import type { RsvpSubmission } from '@/types/database'
 
 const STORAGE_KEY = 'wedding_rsvp_submission'
+const STAGE_KEY = 'wedding_rsvp_stage'
+
+type Stage = 'choose' | 'challenge' | 'form'
+
+const STAGE_HINT: Record<Stage, string> = {
+  choose: '¿Cómo quieres confirmar?',
+  challenge: 'Supera los tres desafíos para llegar al formulario.',
+  form: 'Completa tus datos para confirmar.',
+}
+
+function loadStage(): Stage {
+  try {
+    const s = sessionStorage.getItem(STAGE_KEY)
+    return s === 'challenge' || s === 'form' ? s : 'choose'
+  } catch {
+    return 'choose'
+  }
+}
+
+function clearProgress() {
+  try {
+    sessionStorage.removeItem(STAGE_KEY)
+    sessionStorage.removeItem(CHALLENGE_KEY)
+  } catch { /* noop */ }
+}
 
 function loadSaved(): RsvpSubmission | null {
   try {
@@ -23,14 +50,24 @@ function saveSub(s: RsvpSubmission) {
 
 export default function RSVP() {
   const [submission, setSubmission] = useState<RsvpSubmission | null>(loadSaved)
+  const [stage, setStageState] = useState<Stage>(loadStage)
+
+  const setStage = (s: Stage) => {
+    try { sessionStorage.setItem(STAGE_KEY, s) } catch { /* noop */ }
+    setStageState(s)
+    window.scrollTo({ top: 0 })
+  }
 
   const handleConfirmed = (s: RsvpSubmission) => {
     saveSub(s)
+    clearProgress()
     setSubmission(s)
   }
 
   const handleChangeGuest = () => {
     try { localStorage.removeItem(STORAGE_KEY) } catch { /* noop */ }
+    clearProgress()
+    setStageState('choose')
     setSubmission(null)
   }
 
@@ -52,12 +89,16 @@ export default function RSVP() {
           <Divider className="mt-5" />
         </div>
         <p className="mt-5 text-center text-sm text-muted">
-          {submission ? '¡Gracias por confirmar!' : 'Completa tus datos para confirmar.'}
+          {submission ? '¡Gracias por confirmar!' : STAGE_HINT[stage]}
         </p>
 
         <div className="mt-8">
           {submission ? (
             <Confirmation submission={submission} onChangeGuest={handleChangeGuest} />
+          ) : stage === 'choose' ? (
+            <ModeSelect onEasy={() => setStage('form')} onHard={() => setStage('challenge')} />
+          ) : stage === 'challenge' ? (
+            <Challenge onComplete={() => setStage('form')} onEasy={() => setStage('form')} />
           ) : (
             <RSVPForm onConfirmed={handleConfirmed} />
           )}

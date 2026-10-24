@@ -12,6 +12,12 @@ export default {
         muted: 'rgb(var(--color-muted) / <alpha-value>)',
         ink: 'rgb(var(--color-ink) / <alpha-value>)',
       },
+      keyframes: {
+        'fade-in': { from: { opacity: '0' }, to: { opacity: '1' } },
+      },
+      animation: {
+        'fade-in': 'fade-in 600ms ease-out',
+      },
       fontFamily: {
         heading: ['"Cormorant Garamond"', 'serif'],
         body: ['Inter', 'sans-serif'],
