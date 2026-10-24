@@ -168,14 +168,16 @@ function RSVPForm({
   onConfirmed: (s: RsvpSubmission) => void
   onChangeGuest: () => void
 }) {
-  const [attending, setAttending] = useState<boolean | null>(null)
+  const [plusOne, setPlusOne] = useState<boolean | null>(null)
   const [dietary, setDietary] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
+  const canSubmit = plusOne !== null
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (attending === null) return
+    if (!canSubmit) return
 
     setSubmitting(true)
     setError('')
@@ -184,8 +186,9 @@ function RSVPForm({
     const payload = {
       id: crypto.randomUUID(),
       entered_name: fullName,
-      rsvp_status: (attending ? 'confirmed' : 'declined') as 'confirmed' | 'declined',
-      dietary_restrictions: attending ? dietary || null : null,
+      rsvp_status: 'confirmed' as const,
+      dietary_restrictions: dietary || null,
+      plus_one: plusOne === true,
       plus_one_name: null,
       plus_one_dietary: null,
     }
@@ -223,54 +226,42 @@ function RSVPForm({
 
       <fieldset>
         <legend className="mb-3 text-sm font-medium">
-          ¿Confirmas tu asistencia?
+          ¿Vienes con acompañante?
         </legend>
         <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={() => setAttending(true)}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-md border-2 py-3 text-sm font-medium transition-colors ${
-              attending === true
-                ? 'border-primary bg-primary text-white'
-                : 'border-secondary bg-white text-primary hover:border-primary'
-            }`}
-          >
-            <Check className="h-4 w-4" />
-            Asistiré
-          </button>
-          <button
-            type="button"
-            onClick={() => setAttending(false)}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-md border-2 py-3 text-sm font-medium transition-colors ${
-              attending === false
-                ? 'border-muted bg-muted text-white'
-                : 'border-secondary bg-white text-primary hover:border-muted'
-            }`}
-          >
-            <X className="h-4 w-4" />
-            No podré
-          </button>
+          {([
+            { value: true, label: 'Sí' },
+            { value: false, label: 'No' },
+          ] as const).map(({ value, label }) => (
+            <button
+              key={label}
+              type="button"
+              onClick={() => setPlusOne(value)}
+              className={`flex-1 rounded-md border-2 py-3 text-sm font-medium transition-colors ${
+                plusOne === value
+                  ? 'border-primary bg-primary text-white'
+                  : 'border-secondary bg-white text-primary hover:border-primary'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
         </div>
       </fieldset>
 
-      {attending && (
-        <>
-          <div>
-            <label htmlFor="dietary" className="mb-1 block text-sm font-medium">
-              Restricciones alimentarias
-            </label>
-            <input
-              id="dietary"
-              type="text"
-              placeholder="Ninguna, vegetariano, sin gluten, etc."
-              value={dietary}
-              onChange={e => setDietary(e.target.value)}
-              className="w-full rounded-md border border-secondary bg-white px-4 py-3 text-sm outline-none transition-colors focus:border-primary"
-            />
-          </div>
-
-        </>
-      )}
+      <div>
+        <label htmlFor="dietary" className="mb-1 block text-sm font-medium">
+          Restricciones alimentarias
+        </label>
+        <input
+          id="dietary"
+          type="text"
+          placeholder="Ninguna, vegetariano, sin gluten, etc."
+          value={dietary}
+          onChange={e => setDietary(e.target.value)}
+          className="w-full rounded-md border border-secondary bg-white px-4 py-3 text-sm outline-none transition-colors focus:border-primary"
+        />
+      </div>
 
       {error && (
         <p className="text-center text-sm text-red-500">{error}</p>
@@ -278,7 +269,7 @@ function RSVPForm({
 
       <button
         type="submit"
-        disabled={attending === null || submitting}
+        disabled={!canSubmit || submitting}
         className="flex w-full items-center justify-center gap-2 rounded-sm bg-primary py-3.5 text-xs font-medium uppercase tracking-[0.2em] text-white transition-colors hover:bg-primary/90 disabled:opacity-40"
       >
         {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -328,10 +319,8 @@ function Confirmation({
         </p>
       )}
 
-      {confirmed && submission.plus_one_name && (
-        <p className="mt-1 text-xs text-muted">
-          Acompañante: {submission.plus_one_name}
-        </p>
+      {confirmed && submission.plus_one && (
+        <p className="mt-1 text-xs text-muted">Vienes con acompañante</p>
       )}
 
       {confirmed && <AddToCalendarButton />}

@@ -19,7 +19,7 @@ export default function Dashboard() {
   const confirmed = guests.filter(g => g.rsvp_status === 'confirmed').length
   const pending = guests.filter(g => g.rsvp_status === 'pending').length
   const declined = guests.filter(g => g.rsvp_status === 'declined').length
-  const plusOnes = guests.filter(g => g.rsvp_status === 'confirmed' && g.plus_one_name).length
+  const plusOnes = guests.filter(g => g.rsvp_status === 'confirmed' && (g.plus_one || g.plus_one_name)).length
   const totalAttending = confirmed + plusOnes
 
   const dietaryMap = new Map<string, number>()

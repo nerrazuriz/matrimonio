@@ -7,7 +7,6 @@ import AdminLayout from '@/pages/admin/AdminLayout'
 import Dashboard from '@/pages/admin/Dashboard'
 import GuestsPage from '@/pages/admin/GuestsPage'
 import RSVPPage from '@/pages/admin/RSVPPage'
-import SubmissionsPage from '@/pages/admin/SubmissionsPage'
 import TablesPage from '@/pages/admin/TablesPage'
 import AdminRoute from '@/components/admin/AdminRoute'
 import GuestLayout from '@/components/GuestLayout'
@@ -26,7 +25,6 @@ export default function App() {
           <Route path="/admin" element={<Dashboard />} />
           <Route path="/admin/guests" element={<GuestsPage />} />
           <Route path="/admin/rsvp" element={<RSVPPage />} />
-          <Route path="/admin/submissions" element={<SubmissionsPage />} />
           <Route path="/admin/tables" element={<TablesPage />} />
         </Route>
       </Route>

@@ -75,6 +75,7 @@ export interface RsvpSubmission {
   entered_name: string
   rsvp_status: 'confirmed' | 'declined'
   dietary_restrictions: string | null
+  plus_one: boolean
   plus_one_name: string | null
   plus_one_dietary: string | null
   linked_guest_id: string | null
