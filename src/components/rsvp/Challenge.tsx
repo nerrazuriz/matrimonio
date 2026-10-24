@@ -33,6 +33,12 @@ export default function Challenge({ onComplete, onEasy }: { onComplete: () => vo
     })
   }, [])
 
+  function handleReplay() {
+    try { sessionStorage.removeItem(CHALLENGE_KEY) } catch { /* noop */ }
+    setIndex(0)
+    window.scrollTo({ top: 0 })
+  }
+
   if (done) {
     return (
       <div className="flex flex-col items-center text-center">
@@ -46,6 +52,12 @@ export default function Challenge({ onComplete, onEasy }: { onComplete: () => vo
           className="mt-8 w-full rounded-sm bg-primary py-3.5 text-xs font-medium uppercase tracking-[0.2em] text-white transition-colors hover:bg-primary/90"
         >
           Ir al formulario
+        </button>
+        <button
+          onClick={handleReplay}
+          className="mt-4 text-xs text-muted underline hover:text-primary"
+        >
+          Volver a jugar
         </button>
       </div>
     )

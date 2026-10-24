@@ -9,7 +9,6 @@ import Challenge, { CHALLENGE_KEY } from '@/components/rsvp/Challenge'
 import type { RsvpSubmission } from '@/types/database'
 
 const STORAGE_KEY = 'wedding_rsvp_submission'
-const STAGE_KEY = 'wedding_rsvp_stage'
 
 type Stage = 'choose' | 'challenge' | 'form'
 
@@ -19,20 +18,8 @@ const STAGE_HINT: Record<Stage, string> = {
   form: 'Completa tus datos para confirmar.',
 }
 
-function loadStage(): Stage {
-  try {
-    const s = sessionStorage.getItem(STAGE_KEY)
-    return s === 'challenge' || s === 'form' ? s : 'choose'
-  } catch {
-    return 'choose'
-  }
-}
-
 function clearProgress() {
-  try {
-    sessionStorage.removeItem(STAGE_KEY)
-    sessionStorage.removeItem(CHALLENGE_KEY)
-  } catch { /* noop */ }
+  try { sessionStorage.removeItem(CHALLENGE_KEY) } catch { /* noop */ }
 }
 
 function loadSaved(): RsvpSubmission | null {
@@ -50,10 +37,9 @@ function saveSub(s: RsvpSubmission) {
 
 export default function RSVP() {
   const [submission, setSubmission] = useState<RsvpSubmission | null>(loadSaved)
-  const [stage, setStageState] = useState<Stage>(loadStage)
+  const [stage, setStageState] = useState<Stage>('choose')
 
   const setStage = (s: Stage) => {
-    try { sessionStorage.setItem(STAGE_KEY, s) } catch { /* noop */ }
     setStageState(s)
     window.scrollTo({ top: 0 })
   }
